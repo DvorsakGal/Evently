@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:evently_app/pages/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:evently_app/auth.dart';
@@ -12,10 +14,26 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
   final User? user = Auth().currentUser;
 
   Future<void> signOut() async {
     await Auth().signOut();
+  }
+
+  Future<String> _getProfilePictureColor() async {
+    final doc =
+        await _firebaseFirestore.collection('users').doc(user!.uid).get();
+    return doc.data()?['profilePicture'] ?? '#000000';
+  }
+
+  void _navigateToProfile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProfilePage(),
+      ),
+    );
   }
 
   Future<void> _showEventCreationDialog() async {
@@ -111,6 +129,31 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _profileIcon() {
+    return FutureBuilder(
+      future: _getProfilePictureColor(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const Icon(Icons.error);
+        }
+        final colorHex = snapshot.data!;
+        final color =
+            Color(int.parse(colorHex.substring(1), radix: 16) + 0xFF000000);
+
+        return GestureDetector(
+          onTap: () => _navigateToProfile(context),
+          child: CircleAvatar(
+            backgroundColor: color,
+            radius: 20,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,7 +168,13 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            _userUid(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _userUid(),
+                _profileIcon(),
+              ],
+            ),
             _signOutButton(),
           ],
         ),
