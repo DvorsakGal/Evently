@@ -148,6 +148,7 @@ class _HomePageState extends State<HomePage> {
           child: CircleAvatar(
             backgroundColor: color,
             radius: 20,
+            child: const Icon(Icons.person),
           ),
         );
       },
