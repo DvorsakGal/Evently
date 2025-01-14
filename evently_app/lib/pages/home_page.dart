@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:evently_app/pages/profile_page.dart';
+import 'package:evently_app/pages/event_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:evently_app/auth.dart';
 import 'package:evently_app/firestore/firestore_service.dart';
+
 
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
@@ -31,7 +33,7 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ProfilePage(),
+        builder: (context) => ProfilePage(),
       ),
     );
   }
@@ -129,6 +131,156 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<List<Map<String, dynamic>>> _getUserCreatedEvents() async{
+    final doc = await _firestoreService.getUserCreatedEvents(user!.uid);
+    return doc;
+  }
+
+  Widget _userCreatedEvents(){
+    return FutureBuilder(
+      future: _getUserCreatedEvents(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());  // Show loading indicator while fetching data
+      }
+
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));  // error message ce ma problem prejeti data
+      }
+
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return Center(child: Text('No events found for this user.'));  //  no data returned
+      }
+
+      List<Map<String, dynamic>> events = snapshot.data!;
+
+      return ListView.builder(
+        itemCount: events.length,  // Number of events to display
+        itemBuilder: (context, index) {
+          var event = events[index];
+          
+          // Display each event's information
+          return Card(
+            margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+            child: ListTile(
+              title: Text(event['name'] ?? 'No name'),  // Event name
+              subtitle: Text(event['location'] ?? 'No location'),  // Event location
+              trailing: Text(event['date']?.toDate().toString() ?? 'No date'),  // Event date
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EventPage(eventId: event["id"]),///////
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+    },);
+  }
+
+Future<List<Map<String, dynamic>>> _getAllEvents() async{
+    final doc = await _firestoreService.getAllEvents(user!.uid);
+    return doc;
+  }
+
+Widget _AllEvents(){
+    return FutureBuilder(
+      future: _getAllEvents(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());  // Show loading indicator while fetching data
+      }
+
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));  // error message ce ma problem prejeti data
+      }
+
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return Center(child: Text('No events found for this user.'));  //  no data returned
+      }
+
+      List<Map<String, dynamic>> events = snapshot.data!;
+
+      return ListView.builder(
+        itemCount: events.length,  // Number of events to display
+        itemBuilder: (context, index) {
+          var event = events[index];
+          
+          // Display each event's information
+          return Card(
+            margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+            child: ListTile(
+              title: Text(event['name'] ?? 'No name'),  // Event name
+              subtitle: Text(event['location'] ?? 'No location'),  // Event location
+              trailing: Text(event['date']?.toDate().toString() ?? 'No date'),  // Event date
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EventPage(eventId: event["id"]),///////
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+    },);
+  }
+
+Future<List<Map<String, dynamic>>> _getUserEvents() async{
+    final doc = await _firestoreService.getUserEvents(user!.uid);
+    return doc;
+  }
+
+  Widget _userEvents(){
+    return FutureBuilder(
+      future: _getUserEvents(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());  // Show loading indicator while fetching data
+      }
+
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));  // error message ce ma problem prejeti data
+      }
+
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return Center(child: Text('No events found for this user.'));  //  no data returned
+      }
+
+      List<Map<String, dynamic>> events = snapshot.data!;
+
+      return ListView.builder(
+        itemCount: events.length,  // Number of events to display
+        itemBuilder: (context, index) {
+          var event = events[index];
+          
+          // Display each event's information
+          return Card(
+            margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+            child: ListTile(
+              title: Text(event['name'] ?? 'No name'),  // Event name
+              subtitle: Text(event['location'] ?? 'No location'),  // Event location
+              trailing: Text(event['date']?.toDate().toString() ?? 'No date'),  // Event date
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EventPage(eventId: event["id"]),///////
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+    },);
+  }
+
   Widget _profileIcon() {
     return FutureBuilder(
       future: _getProfilePictureColor(),
@@ -153,6 +305,13 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  } 
+  
+  int _selectedIndex = 0;
+  void _onButtonPressed(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
@@ -160,6 +319,12 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: _title(),
+        actions: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: _profileIcon(),
+          ),
+        ],
       ),
       body: Container(
         height: double.infinity,
@@ -169,6 +334,38 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _onButtonPressed(0),
+                    child: Text("My Events"), //jih je user ustvaro
+                  ),
+                ),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _onButtonPressed(1),
+                    child: Text("Attending"), //jih ima user v sebi
+                  ),
+                ),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _onButtonPressed(2),
+                    child: Text("All Events"),  //cisto vsi eventi
+                  ),
+                ),
+              ],
+            ),
+            // Only display the selected event list
+            Expanded(
+              child: _selectedIndex == 0
+                  ? _userCreatedEvents()  // Show User Created Events
+                  : _selectedIndex == 1
+                      ? _userEvents()  // Show User Events
+                      : _AllEvents(),  // Show All Events
+            ),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
