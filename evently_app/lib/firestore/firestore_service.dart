@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:evently_app/pages/task_page.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -17,22 +18,24 @@ class FirestoreService {
     });
   }
 
-  Future<void> addEvent({
-    required String name,
-    required DateTime date,
-    required String location,
-    required String createdByUid,
-  }) async {
-    await _firestore.collection('events').add({
-      'name': name,
-      'date': Timestamp.fromDate(date),
-      'location': location,
-      'createdBy': _firestore.doc('users/$createdByUid'),
-      'participants': [],
-      'tasks': [],
-      'expenses': [],
-    });
-  }
+  Future<String> addEvent({
+  required String name,
+  required DateTime date,
+  required String location,
+  required String createdByUid,
+}) async {
+  DocumentReference eventRef = await _firestore.collection('events').add({
+    'name': name,
+    'date': Timestamp.fromDate(date),
+    'location': location,
+    'createdBy': _firestore.doc('users/$createdByUid'),
+    'participants': [],
+    'tasks': [], // Inicializiraj prazno polje tasks
+    'expenses': [],
+  });
+
+  return eventRef.id;
+}
 
 //----------------------------------------------
 //  Za zdaj je kar se tice dela z id-jem zelo scuffed
@@ -153,4 +156,176 @@ class FirestoreService {
       }
     
   }
+
+  Future<void> addTask({
+  required String eventId,
+  required String title,
+  required String description,
+  required String assignee,
+  required String status,
+}) async {
+  try {
+    print("Adding task to event: $eventId");
+    print("Task details: $title, $description, $assignee, $status");
+
+    // Ustvari podatke za nalogo, ki bo postala dokument v kolekciji `tasks`
+    var task = {
+      'title': title,
+      'description': description,
+      'assignee': assignee,
+      'status': status,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    // Ustvari nalogo kot nov dokument v kolekciji `tasks`
+    var taskRef = await _firestore.collection('tasks').add(task);
+
+    // Sedaj bomo dodali referenco na nalogo v kolekcijo `events`
+    await _firestore.collection('events').doc(eventId).update({
+      'tasks': FieldValue.arrayUnion([taskRef]),
+    });
+
+    print("Task added successfully to event: $eventId");
+  } catch (e) {
+    print("Error adding task: $e");
+    throw Exception("Failed to add task");
+  }
+}
+
+
+
+
+
+  Future<List<Map<String, dynamic>>> getTasks(String eventId) async {
+  try {
+    // Dobimo dokument dogodka
+    var eventDoc = await _firestore.collection('events').doc(eventId).get();
+
+    if (eventDoc.exists) {
+      // Dobimo seznam referenc na naloge (vsaka je DocumentReference)
+      List<dynamic> taskRefs = eventDoc['tasks'] ?? [];
+      List<Map<String, dynamic>> tasks = [];
+
+      // Preberemo naloge s pomočjo njihovih referenc
+      for (var taskRef in taskRefs) {
+        if (taskRef is DocumentReference) {
+          var taskDoc = await taskRef.get();
+
+          if (taskDoc.exists) {
+            // Naloga bo shranjena v seznam
+            Map<String, dynamic> taskData = taskDoc.data() as Map<String, dynamic>;
+            taskData['id'] = taskDoc.id; // Dodajemo ID naloge za lokalno uporabo
+            tasks.add(taskData);
+          }
+        } else {
+          print("Invalid reference found: $taskRef");
+        }
+      }
+
+      return tasks;
+    } else {
+      throw Exception('Event not found');
+    }
+  } catch (e) {
+    print("Error retrieving tasks: $e");
+    throw Exception('Failed to get tasks');
+  }
+}
+
+
+
+  Future<void> updateTask({
+  required String eventId,
+  required String taskId,
+  String? title,
+  String? description,
+  String? status,
+}) async {
+  try {
+    // Dobimo dokument dogodka
+    var eventDoc = await _firestore.collection('events').doc(eventId).get();
+    
+    if (eventDoc.exists) {
+      // Dobimo seznam referenc na naloge (vsaka je DocumentReference)
+      List<dynamic> taskRefs = eventDoc['tasks'] ?? [];
+      DocumentReference? taskRef;
+
+      // Poiščemo referenco naloge z ustreznim taskId
+      for (var ref in taskRefs) {
+        if (ref is DocumentReference && ref.id == taskId) {
+          taskRef = ref;
+          break;
+        }
+      }
+
+      if (taskRef != null) {
+        // Posodabljanje naloge v kolekciji tasks
+        var taskDoc = await taskRef.get();
+        if (taskDoc.exists) {
+          var updatedData = <String, dynamic>{};
+          if (title != null) updatedData['title'] = title;
+          if (description != null) updatedData['description'] = description;
+          if (status != null) updatedData['status'] = status;
+
+          // Posodabljamo nalogo v kolekciji tasks
+          await taskRef.update(updatedData);
+          print("Task updated successfully");
+        } else {
+          throw Exception('Task not found');
+        }
+      } else {
+        throw Exception('Task reference not found in the event');
+      }
+    } else {
+      throw Exception('Event not found');
+    }
+  } catch (e) {
+    print("Error updating task: $e");
+    throw Exception('Failed to update task');
+  }
+}
+
+
+  Future<void> deleteTask({
+  required String eventId,
+  required String taskId,
+}) async {
+  try {
+    // Dobimo dokument dogodka
+    var eventDoc = await _firestore.collection('events').doc(eventId).get();
+    
+    if (eventDoc.exists) {
+      // Dobimo seznam referenc na naloge (vsaka je DocumentReference)
+      List<dynamic> taskRefs = eventDoc['tasks'] ?? [];
+      DocumentReference? taskRef;
+
+      // Poiščemo referenco naloge z ustreznim taskId
+      for (var ref in taskRefs) {
+        if (ref is DocumentReference && ref.id == taskId) {
+          taskRef = ref;
+          break;
+        }
+      }
+
+      if (taskRef != null) {
+        // Najprej odstranimo nalogo iz kolekcije tasks
+        await taskRef.delete();
+        print("Task deleted successfully");
+
+        // Odstranimo referenco naloge iz eventa
+        await _firestore.collection('events').doc(eventId).update({
+          'tasks': FieldValue.arrayRemove([taskRef]),
+        });
+      } else {
+        throw Exception('Task reference not found in the event');
+      }
+    } else {
+      throw Exception('Event not found');
+    }
+  } catch (e) {
+    print("Error deleting task: $e");
+    throw Exception('Failed to delete task');
+  }
+}
+
 }
