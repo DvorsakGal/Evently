@@ -2,6 +2,7 @@ import 'package:evently_app/firestore/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:evently_app/pages/task_page.dart';
+import 'package:evently_app/pages/guestlist_page.dart';  // Uvoz za novo stran
 import 'package:intl/intl.dart';  // Import intl package
 
 class EventPage extends StatefulWidget {
@@ -22,7 +23,7 @@ class _EventPage extends State<EventPage> {
     super.initState();
     _eventDetails = _firestoreService.getSelectedEvent(widget.eventId);
   }
-  
+
   String _formatDate(Timestamp timestamp) {
     // Convert the Timestamp to DateTime
     DateTime dateTime = timestamp.toDate();
@@ -93,6 +94,21 @@ class _EventPage extends State<EventPage> {
               },
               icon: const Icon(Icons.task),
               label: const Text('Manage Tasks'),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GuestListPage(eventId: widget.eventId), // Preusmeri na GuestListPage
+                  ),
+                );
+              },
+              icon: const Icon(Icons.people),
+              label: const Text('Manage Guests'),
             ),
           ),
         ],
