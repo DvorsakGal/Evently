@@ -1,10 +1,12 @@
 import 'package:evently_app/firestore/firestore_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:evently_app/pages/task_page.dart';
 import 'package:evently_app/pages/guestlist_page.dart'; // Uvoz za novo stran
 import 'package:intl/intl.dart'; // Import intl package
 import 'package:evently_app/pages/weather_page.dart';
+import 'package:evently_app/auth.dart';
 
 class EventPage extends StatefulWidget {
   final String eventId;
@@ -17,17 +19,40 @@ class EventPage extends StatefulWidget {
 
 class _EventPage extends State<EventPage> {
   final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
+  final User? user = Auth().currentUser;
   late Future<Map<String, dynamic>> _eventDetails;
 
   //OGLASNA DESKA PARAMETRI
   final TextEditingController _postController = TextEditingController();
-  final List<String> _bulletinBoardPosts = [];
+  // Each post now contains both the text and the user's profile color
+  final List<Map<String, String>> _bulletinBoardPosts = [];
   //konec
+
+  // BARVA
+  Future<String> _getProfilePictureColor() async {
+    final doc =
+        await _firebaseFirestore.collection('users').doc(user!.uid).get();
+    return doc.data()?['profilePicture'] ?? '#000000';
+  }
 
   @override
   void initState() {
     super.initState();
     _eventDetails = _firestoreService.getSelectedEvent(widget.eventId);
+    // Populate with dummy data
+    _bulletinBoardPosts.addAll([
+      {
+        "text": "Will the event be cancelled in case of rain?",
+        "color": "#FF5722"
+      },
+      {
+        "text":
+            "No. So please check the weather before arrival for proper wardrobe :)",
+        "color": "#4CAF50"
+      },
+      {"text": "Sadly I won't be making it :(", "color": "#2196F3"},
+    ]);
   }
 
   String _formatDate(Timestamp timestamp) {
@@ -76,10 +101,14 @@ class _EventPage extends State<EventPage> {
   }
 
   // ADD POST ZA OGLASNO DESKO
-  void _addPost() {
+  void _addPost() async {
     if (_postController.text.isNotEmpty) {
+      final userColor = await _getProfilePictureColor(); // Fetch user's color
       setState(() {
-        _bulletinBoardPosts.add(_postController.text);
+        _bulletinBoardPosts.add({
+          "text": _postController.text,
+          "color": userColor, // Store the user's color with the post
+        });
         _postController.clear();
       });
     }
@@ -108,12 +137,30 @@ class _EventPage extends State<EventPage> {
           ),
         ),
         Container(
-          height: 200, // Specify a fixed height for the bulletin board
+          height: 300, // Specify a fixed height for the bulletin board
           child: ListView.builder(
             itemCount: _bulletinBoardPosts.length,
             itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(_bulletinBoardPosts[index]),
+              final post = _bulletinBoardPosts[index];
+              final colorHex = post['color']!;
+              final borderColor = Color(
+                  int.parse(colorHex.substring(1), radix: 16) + 0xFF000000);
+
+              return Container(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  border: Border.all(color: borderColor, width: 2.0),
+                  borderRadius: BorderRadius.circular(8.0),
+                  color: Colors.white, // Background color for the tile
+                ),
+                child: ListTile(
+                  title: Text(
+                    post['text']!,
+                    style: const TextStyle(fontSize: 16.0),
+                  ),
+                ),
               );
             },
           ),
@@ -154,55 +201,62 @@ class _EventPage extends State<EventPage> {
                 children: [
                   _detailsOfEvent(),
                   const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TaskPage(eventId: widget.eventId),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.task),
-                      label: const Text('Manage Tasks'),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GuestListPage(
-                                eventId: widget
-                                    .eventId), // Preusmeri na GuestListPage
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.people),
-                      label: const Text('Manage Guests'),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => WeatherPage(
-                              location: location,
-                            ), // Preusmeri na weather page
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.sunny),
-                      label: const Text('Check Weather'),
-                    ),
+                  // Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      SizedBox(
+                        width: 125,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    TaskPage(eventId: widget.eventId),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.task),
+                          label: const Text('Manage Tasks'),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 125,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    GuestListPage(eventId: widget.eventId),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.people),
+                          label: const Text('Manage Guests'),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 125,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    WeatherPage(location: location),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.sunny),
+                          label: const Text('Check Weather'),
+                        ),
+                      ),
+                    ],
                   ),
                   const Divider(),
                   // OGLASNA DESKA
