@@ -37,43 +37,120 @@ class _EventPage extends State<EventPage> {
     return DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
   }
 
-  Widget _detailsOfEvent() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _eventDetails,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData) {
-          return Center(child: Text('Event not found'));
-        } else {
-          var event = snapshot.data!;
-          // Ensure that the 'date' field is a Timestamp
-          Timestamp eventDate = event['date'];
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Event Name: ${event['name']}',
-                    style: TextStyle(fontSize: 24)),
-                SizedBox(height: 8),
-                Text('Date: ${_formatDate(eventDate)}',
-                    style: TextStyle(fontSize: 18)), // Format the date here
-                SizedBox(height: 8),
-                Text('Location: ${event['location']}',
-                    style: TextStyle(fontSize: 18)),
-                SizedBox(height: 8),
-                Text('Participants: ${event['participants'].join(', ')}',
-                    style: TextStyle(fontSize: 18)),
-              ],
+ Widget _detailsOfEvent() {
+  return FutureBuilder<Map<String, dynamic>>(
+    future: _eventDetails,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      } else if (!snapshot.hasData) {
+        return Center(child: Text('Event not found'));
+      } else {
+        var event = snapshot.data!;
+        Timestamp eventDate = event['date'];
+        List<dynamic> participants = event['participants'] ?? [];
+
+        // Filtriraj potrjene udeležence in pridobi njihova imena
+        var confirmedParticipants = participants
+            .where((p) => p['status'] == 'confirmed')
+            .map((p) => p['name'])
+            .toList();
+
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.0),
             ),
-          );
-        }
-      },
-    );
-  }
+            elevation: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Ime dogodka z lila barvo
+                  Text(
+                    event['name'],
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: const Color.fromARGB(255, 103, 79, 163), // Lila barva za naslov
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Datum dogodka z ikono
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today,
+                          color: const Color.fromARGB(255, 103, 79, 163)), // Lila ikona
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDate(eventDate),
+                        style: TextStyle(fontSize: 18, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Lokacija dogodka z ikono
+                  Row(
+                    children: [
+                      Icon(Icons.location_on,
+                          color: const Color.fromARGB(255, 103, 79, 163)), // Lila ikona
+                      const SizedBox(width: 8),
+                      Text(
+                        event['location'],
+                        style: TextStyle(fontSize: 18, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Udeleženci (prikaz potrjenih udeležencev)
+                  Text(
+                    'Confirmed Participants:',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: const Color.fromARGB(255, 103, 79, 163), // Lila barva za naslov
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Prikaz imen potrjenih udeležencev v obliki seznama
+                  if (confirmedParticipants.isEmpty)
+                    Text(
+                      'No confirmed participants yet.',
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                    )
+                  else
+                    ...confirmedParticipants.map(
+                      (name) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle,
+                                color: const Color.fromARGB(255, 8, 161, 67), size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              name,
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.black),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    },
+  );
+}
+
+
 
   // ADD POST ZA OGLASNO DESKO
   void _addPost() {
