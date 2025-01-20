@@ -437,15 +437,17 @@ Future<List<Map<String, dynamic>>> getGuests(String eventId) async {
   // Delete a guest from an event
   Future<void> deleteGuest({
     required String eventId,
-    required String guestId,
+    required int guestId,
   }) async {
     try {
       var eventDoc = await _firestore.collection('events').doc(eventId).get();
 
       if (eventDoc.exists) {
         List<dynamic> participants = eventDoc['participants'] ?? [];
-        participants.removeWhere((guest) => guest['id'] == guestId);
-
+        
+        if (guestId >= 0 && guestId < participants.length) {
+          participants.removeAt(guestId);
+        }
         await _firestore.collection('events').doc(eventId).update({
           'participants': participants,
         });

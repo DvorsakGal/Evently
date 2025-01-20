@@ -75,7 +75,7 @@ class _GuestListPageState extends State<GuestListPage> {
                 ),
               ),
               onTap: () => _showEditGuestDialog(guest),
-              onLongPress: () => _deleteGuest(guest['id']),
+              onLongPress: () => _deleteGuest(index),
             );
           },
         );
@@ -148,7 +148,7 @@ class _GuestListPageState extends State<GuestListPage> {
     );
   }
 
-  void _deleteGuest(String guestId) async {
+  void _deleteGuest(int guestId) async {
     try {
       await _firestoreService.deleteGuest(eventId: widget.eventId, guestId: guestId);
       _loadGuests(); // Reload guests after deleting
