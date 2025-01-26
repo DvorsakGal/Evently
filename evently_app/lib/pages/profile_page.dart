@@ -16,14 +16,15 @@ class _ProfilePage extends State<ProfilePage> {
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
   final User? user = Auth().currentUser;
 
-
-
-  Future<String> _getProfilePictureColor() async {
-      final doc =
-          await _firebaseFirestore.collection('users').doc(user!.uid).get();
-      return doc.data()?['profilePicture'] ?? '#000000';
+  Future<void> signOut() async {
+    await Auth().signOut();
   }
 
+  Future<String> _getProfilePictureColor() async {
+    final doc =
+        await _firebaseFirestore.collection('users').doc(user!.uid).get();
+    return doc.data()?['profilePicture'] ?? '#000000';
+  }
 
   Widget _profileIcon() {
     return FutureBuilder(
@@ -40,13 +41,24 @@ class _ProfilePage extends State<ProfilePage> {
             Color(int.parse(colorHex.substring(1), radix: 16) + 0xFF000000);
 
         return CircleAvatar(
-            backgroundColor: color,
-            radius: 20,
-            child: const Icon(Icons.person),
+          backgroundColor: color,
+          radius: 20,
+          child: const Icon(Icons.person),
         );
       },
     );
-  } 
+  }
+
+  Widget _userUid() {
+    return Text(user?.email ?? "User email");
+  }
+
+  Widget _signOutButton() {
+    return ElevatedButton(
+      onPressed: signOut,
+      child: const Text("Sign Out"),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,9 +79,18 @@ class _ProfilePage extends State<ProfilePage> {
         ],
       ),
       body: Center(
-        child: const Text(
-          "Profile",
-          style: TextStyle(fontSize: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _userUid(),
+                _profileIcon(),
+              ],
+            ),
+            _signOutButton(),
+          ],
         ),
       ),
     );
