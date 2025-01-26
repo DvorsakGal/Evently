@@ -27,53 +27,60 @@ class _TaskPageState extends State<TaskPage> {
     });
   }
 
-  Widget _taskList() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _tasks,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No tasks found'));
-        } else {
-          var tasks = snapshot.data!;
-          return ListView.builder(
-            itemCount: tasks.length,
-            itemBuilder: (context, index) {
-              var task = tasks[index];
-              return ListTile(
-                title: Text(task['title']),
-                subtitle: Text(task['description']),
-                trailing: DropdownButton<String>(
-                  value: task['status'],
-                  items: ['to-do', 'doing', 'done'].map((status) {
-                    return DropdownMenuItem(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
-                  onChanged: (newStatus) {
-                    if (newStatus != null) {
-                      _firestoreService.updateTask(
-                        eventId: widget.eventId,
-                        taskId: task['id'],
-                        status: newStatus,
-                      );
-                      _loadTasks();  // Reload tasks after updating status
-                    }
-                  },
+Widget _taskList() {
+  return FutureBuilder<List<Map<String, dynamic>>>(
+    future: _tasks,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return const Center(child: Text('No tasks found'));
+      } else {
+        final tasks = snapshot.data!;
+        return ListView.builder(
+          itemCount: tasks.length,
+          itemBuilder: (context, index) {
+            final task = tasks[index];
+            Color statusColor;
+            switch (task['status']) {
+              case 'to-do':
+                statusColor = Colors.blue;
+                break;
+              case 'doing':
+                statusColor = Colors.orange;
+                break;
+              case 'done':
+                statusColor = Colors.green;
+                break;
+              default:
+                statusColor = Colors.black;
+            }
+            return ListTile(
+              title: Text(task['title']),
+              subtitle: Text(task['description']),
+              trailing: Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                onTap: () => _showEditTaskDialog(task),
-                onLongPress: () => _deleteTask(task['id']),
-              );
-            },
-          );
-        }
-      },
-    );
-  }
+                child: Text(
+                  task['status'],
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              onTap: () => _showEditTaskDialog(task),
+              onLongPress: () => _deleteTask(task['id']),
+            );
+          },
+        );
+      }
+    },
+  );
+}
+
 
   void _showAddTaskDialog() {
     final titleController = TextEditingController();
@@ -155,70 +162,76 @@ class _TaskPageState extends State<TaskPage> {
     }
   }
 
-  void _showEditTaskDialog(Map<String, dynamic> task) {
-    final titleController = TextEditingController(text: task['title']);
-    final descriptionController = TextEditingController(text: task['description']);
-    String status = task['status'];
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Task'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-              ),
-              DropdownButton<String>(
-                value: status,
-                items: ['to-do', 'doing', 'done'].map((status) {
-                  return DropdownMenuItem(
-                    value: status,
-                    child: Text(status),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) status = value;
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+void _showEditTaskDialog(Map<String, dynamic> task) {
+  final titleController = TextEditingController(text: task['title']);
+  final descriptionController = TextEditingController(text: task['description']);
+  String status = task['status'];
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Edit Task'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                DropdownButton<String>(
+                  value: status,
+                  items: ['to-do', 'doing', 'done'].map((statusOption) {
+                    return DropdownMenuItem(
+                      value: statusOption,
+                      child: Text(statusOption),
+                    );
+                  }).toList(),
+                  onChanged: (newStatus) {
+                    if (newStatus != null) {
+                      setState(() {
+                        status = newStatus;
+                      });
+                    }
+                  },
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await _firestoreService.updateTask(
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  _firestoreService.updateTask(
                     eventId: widget.eventId,
                     taskId: task['id'],
                     title: titleController.text,
                     description: descriptionController.text,
                     status: status,
                   );
-                  _loadTasks();  // Reload tasks after updating
-                  Navigator.pop(context);
-                } catch (e) {
-                  print('Error editing task: $e');
-                  // Handle error (optional: show a message to the user)
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+                  _loadTasks();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {

@@ -1,17 +1,13 @@
-import 'dart:math';
-import 'package:evently_app/firestore/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:evently_app/auth.dart';
+import 'dart:math';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
-
+class LoginRegisterPage extends StatefulWidget {
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<LoginRegisterPage> createState() => _LoginRegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginRegisterPageState extends State<LoginRegisterPage> {
   String? errorMessage = "";
   bool isLogin = true;
 
@@ -26,7 +22,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> signInWithEmailAndPassword() async {
     try {
-      await Auth().signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _controllerEmail.text,
         password: _controllerPassword.text,
       );
@@ -39,26 +35,10 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> createUserWithEmailAndPassword() async {
     try {
-      //Register the user with firebase auth
-      await Auth().createUserWithEmailAndPassword(
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _controllerEmail.text,
         password: _controllerPassword.text,
       );
-
-      //Get the current user
-      final user = Auth().currentUser;
-      if (user != null) {
-        // Generate a random profile picture color
-        final profilePicture = generateRandomColor();
-
-        // Add user to firestore
-        await FirestoreService().addUser(
-          uid: user.uid,
-          name: _controllerName.text,
-          email: _controllerEmail.text,
-          profilePicture: profilePicture,
-        );
-      }
     } on FirebaseAuthException catch (e) {
       setState(() {
         errorMessage = e.message;
@@ -67,26 +47,44 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _title() {
-    return const Text("Weather app");
+    return const Text(
+      "Evently",
+      style: TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+      ),
+    );
   }
 
-  Widget _entryField(String title, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: title,
+  Widget _entryField(String title, TextEditingController controller, {bool isPassword = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        decoration: InputDecoration(
+          labelText: title,
+          border: OutlineInputBorder(),
+        ),
       ),
     );
   }
 
   Widget _errorMessage() {
-    return Text(errorMessage == "" ? "" : "Humm ? $errorMessage");
+    return errorMessage == null || errorMessage!.isEmpty
+        ? const SizedBox.shrink()
+        : Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+              "Humm ? $errorMessage",
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
   }
 
   Widget _submitButton() {
     return ElevatedButton(
-      onPressed:
-          isLogin ? signInWithEmailAndPassword : createUserWithEmailAndPassword,
+      onPressed: isLogin ? signInWithEmailAndPassword : createUserWithEmailAndPassword,
       child: Text(isLogin ? "Login" : "Register"),
     );
   }
@@ -98,7 +96,7 @@ class _LoginPageState extends State<LoginPage> {
           isLogin = !isLogin;
         });
       },
-      child: Text(isLogin ? "Register instead" : "Login instead"),
+      child: Text(isLogin ? "Don't have an account? Register" : "Already have an account? Login"),
     );
   }
 
@@ -108,19 +106,14 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(
         title: _title(),
       ),
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            if (!isLogin)
-              _entryField(
-                  "name", _controllerName), //pridobi ime ob registraciji
-            _entryField("email", _controllerEmail),
-            _entryField("password", _controllerPassword),
+          children: [
+            if (!isLogin) _entryField("Name", _controllerName),
+            _entryField("Email", _controllerEmail),
+            _entryField("Password", _controllerPassword, isPassword: true),
             _errorMessage(),
             _submitButton(),
             _loginOrRegisterButton(),

@@ -254,7 +254,7 @@ class _EventPage extends State<EventPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("EventPage"),
+        title: const Text("Event Dashboard"),
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);
@@ -283,11 +283,12 @@ class _EventPage extends State<EventPage> {
                   _detailsOfEvent(),
                   const Divider(),
                   // Buttons
-                  Row(
+                Center(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       SizedBox(
-                        width: 125,
+                        width: 210,
                         height: 50,
                         child: ElevatedButton.icon(
                           onPressed: () {
@@ -303,8 +304,9 @@ class _EventPage extends State<EventPage> {
                           label: const Text('Manage Tasks'),
                         ),
                       ),
+                      const SizedBox(height: 10),
                       SizedBox(
-                        width: 125,
+                        width: 210,
                         height: 50,
                         child: ElevatedButton.icon(
                           onPressed: () {
@@ -320,8 +322,9 @@ class _EventPage extends State<EventPage> {
                           label: const Text('Manage Guests'),
                         ),
                       ),
+                      const SizedBox(height: 10),
                       SizedBox(
-                        width: 125,
+                        width: 210,
                         height: 50,
                         child: ElevatedButton.icon(
                           onPressed: () {
@@ -335,10 +338,11 @@ class _EventPage extends State<EventPage> {
                           },
                           icon: const Icon(Icons.sunny),
                           label: const Text('Check Weather'),
-                        ),
-                      ),
-                    ],
-                  ),
+                         ),
+      ),
+    ],
+  ),
+),
                   const Divider(),
                   // OGLASNA DESKA
                   const Padding(

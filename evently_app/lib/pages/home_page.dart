@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:evently_app/auth.dart';
 import 'package:evently_app/firestore/firestore_service.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
@@ -130,66 +131,76 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<List<Map<String, dynamic>>> _getUserCreatedEvents() async {
-    final doc = await _firestoreService.getUserCreatedEvents(user!.uid);
-    return doc;
-  }
+Future<List<Map<String, dynamic>>> _getUserCreatedEvents() async {
+  final doc = await _firestoreService.getUserCreatedEvents(user!.uid);
+  return doc;
+}
 
-  Widget _userCreatedEvents() {
-    return FutureBuilder(
-      future: _getUserCreatedEvents(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-              child:
-                  CircularProgressIndicator()); // Show loading indicator while fetching data
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-              child: Text(
-                  'Error: ${snapshot.error}')); // error message ce ma problem prejeti data
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-              child:
-                  Text('No events found for this user.')); //  no data returned
-        }
-
-        List<Map<String, dynamic>> events = snapshot.data!;
-
-        return ListView.builder(
-          itemCount: events.length, // Number of events to display
-          itemBuilder: (context, index) {
-            var event = events[index];
-
-            // Display each event's information
-            return Card(
-              margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              child: ListTile(
-                title: Text(event['name'] ?? 'No name'), // Event name
-                subtitle:
-                    Text(event['location'] ?? 'No location'), // Event location
-                trailing: Text(event['date']?.toDate().toString() ??
-                    'No date'), // Event date
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EventPage(eventId: event["id"]), ///////
-                    ),
-                  );
-                },
-              ),
-            );
-          },
+Widget _userCreatedEvents() {
+  return FutureBuilder(
+    future: _getUserCreatedEvents(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(
+          child: CircularProgressIndicator(), // Show loading indicator while fetching data
         );
-      },
-    );
-  }
+      }
 
+      if (snapshot.hasError) {
+        return Center(
+          child: Text('Error: ${snapshot.error}'), // Error message if there is a problem fetching data
+        );
+      }
+
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return Center(
+          child: Text('No events found for this user.'), // No data returned
+        );
+      }
+
+      List<Map<String, dynamic>> events = snapshot.data!;
+
+      return ListView.builder(
+        itemCount: events.length, // Number of events to display
+        itemBuilder: (context, index) {
+          var event = events[index];
+          var eventDate = event['date'];
+          DateTime dateTime;
+
+          if (eventDate is Timestamp) {
+            dateTime = eventDate.toDate();
+          } else if (eventDate is DateTime) {
+            dateTime = eventDate;
+          } else if (eventDate is String) {
+            dateTime = DateTime.parse(eventDate);
+          } else {
+            dateTime = DateTime.now(); // Fallback to current date if type is unknown
+          }
+
+          var formattedDate = DateFormat('dd-MM-yyyy HH:mm').format(dateTime);
+
+          // Display each event's information
+          return Card(
+            margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+            child: ListTile(
+              title: Text(event['name'] ?? 'No name'), // Event name
+              subtitle: Text(event['location'] ?? 'No location'), // Event location
+              trailing: Text(formattedDate), // Event date
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EventPage(eventId: event["id"]),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+    },
+  );
+}
   Future<List<Map<String, dynamic>>> _getAllEvents() async {
     final doc = await _firestoreService.getAllEvents(user!.uid);
     return doc;
@@ -255,60 +266,71 @@ class _HomePageState extends State<HomePage> {
     return doc;
   }
 
-  Widget _userEvents() {
-    return FutureBuilder(
-      future: _getUserEvents(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-              child:
-                  CircularProgressIndicator()); // Show loading indicator while fetching data
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-              child: Text(
-                  'Error: ${snapshot.error}')); // error message ce ma problem prejeti data
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-              child:
-                  Text('No events found for this user.')); //  no data returned
-        }
-
-        List<Map<String, dynamic>> events = snapshot.data!;
-
-        return ListView.builder(
-          itemCount: events.length, // Number of events to display
-          itemBuilder: (context, index) {
-            var event = events[index];
-
-            // Display each event's information
-            return Card(
-              margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              child: ListTile(
-                title: Text(event['name'] ?? 'No name'), // Event name
-                subtitle:
-                    Text(event['location'] ?? 'No location'), // Event location
-                trailing: Text(event['date']?.toDate().toString() ??
-                    'No date'), // Event date
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EventPage(eventId: event["id"]), ///////
-                    ),
-                  );
-                },
-              ),
-            );
-          },
+Widget _userEvents() {
+  return FutureBuilder(
+    future: _getUserEvents(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(
+          child: CircularProgressIndicator(), // Show loading indicator while fetching data
         );
-      },
-    );
-  }
+      }
+
+      if (snapshot.hasError) {
+        return Center(
+          child: Text('Error: ${snapshot.error}'), // Error message if there is a problem fetching data
+        );
+      }
+
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return Center(
+          child: Text('No events found for this user.'), // No data returned
+        );
+      }
+
+      List<Map<String, dynamic>> events = snapshot.data!;
+
+      return ListView.builder(
+        itemCount: events.length, // Number of events to display
+        itemBuilder: (context, index) {
+          var event = events[index];
+          var eventDate = event['date'];
+          DateTime dateTime;
+
+          if (eventDate is Timestamp) {
+            dateTime = eventDate.toDate();
+          } else if (eventDate is DateTime) {
+            dateTime = eventDate;
+          } else if (eventDate is String) {
+            dateTime = DateTime.parse(eventDate);
+          } else {
+            dateTime = DateTime.now(); // Fallback to current date if type is unknown
+          }
+
+          var formattedDate = DateFormat('dd-MM-yyyy HH:mm').format(dateTime);
+
+          // Display each event's information
+          return Card(
+            margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+            child: ListTile(
+              title: Text(event['name'] ?? 'No name'), // Event name
+              subtitle: Text(event['location'] ?? 'No location'), // Event location
+              trailing: Text(formattedDate), // Event date
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EventPage(eventId: event["id"]),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _profileIcon() {
     return FutureBuilder(
