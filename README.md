@@ -17,7 +17,8 @@ Evently uses Firebase Authentication for user registration and login. Upon signi
 We focused on a clean and minimalistic user interface, ensuring that functionalities are intuitive and easy to navigate. The goal is to keep the event organization process straightforward without unnecessary complexity.
 
 ## Demo▶️
-A video demo of Evently is included in the GitHub repository. You can find it in the PowerPoint presentation file: **Evently.pptx**.
+A video demo of Evently is included in the GitHub repository. You can find it in the PowerPoint presentation file: **Evently.pptx**. </br>
+Screenshots and short  instructions can be found in **EventlyVodic.pdf**.
 
 ## Technologies Used ⚙️🔥☁️
 - **Flutter** – Cross-platform mobile development
