@@ -18,7 +18,7 @@ We focused on a clean and minimalistic user interface, ensuring that functionali
 
 ## Demo▶️
 A video demo of Evently is included in the GitHub repository. You can find it in the PowerPoint presentation file: **Evently.pptx**. </br>
-Screenshots and short  instructions can be found in **EventlyVodic.pdf**.
+Screenshots and short  instructions can be found in **Evently_vodic.pdf**.
 
 ## Technologies Used ⚙️🔥☁️
 - **Flutter** – Cross-platform mobile development
