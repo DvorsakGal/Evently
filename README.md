@@ -36,7 +36,7 @@ A video demo of Evently is included in the GitHub repository. You can find it in
 
 2. Navigate to the project directory:
     ```sh
-   git clone https://github.com/your-repo/Evently.git
+   cd Evently
 
 3. Install dependencies:
    ```sh
